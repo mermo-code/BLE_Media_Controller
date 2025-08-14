@@ -5,12 +5,14 @@
  *      Author: gsabi
  */
 
+// #include <cstddef>
 #include <stdbool.h>
 #include <stdint.h>
 #include <unistd.h>
 
 #include "esp_err.h" // esp_err_t error handling
 #include "esp_log.h" // ESP_LOGI(), ESP_LOGE(), logging macros
+#include "esp_timer.h"
 #include "freertos/idf_additions.h"
 
 #include "driver/gpio.h"
@@ -20,12 +22,21 @@
 #include "host/ble_gatt.h"
 #include "host/ble_store.h"
 #include "nimble/ble.h"
+#include "portmacro.h"
 #include "soc/gpio_num.h"
+
+#include "driver/uart.h"
+#include "esp_check.h"
+#include "esp_sleep.h"
 
 #include "ble_gap.h"
 #include "gpio_fun.h"
 
 TaskHandle_t bttn_detection_task_handle = NULL;
+TaskHandle_t sleep_task_handle = NULL;
+
+const uint64_t activeTime_s = 60;
+const uint64_t activeTime_us = activeTime_s * 1000000;
 
 typedef struct {
 	gpio_num_t pin;
@@ -48,40 +59,63 @@ ButtonConfig buttons[] = {
 	{GPIO_NUM_27, true, false, BUTTON_FLAG_MUTE, "Mute"},
 };
 
+uint64_t last_bttn_press = 0;
+
 /*************MAIN DETECTION FUNCTION**************/
-void detectButtonPress(void *parameters) {
-	while (1) {
-		for (int i = 0; i < sizeof(buttons) / sizeof(buttons[0]); i++) {
-			bool curr_bttn = gpio_get_level(buttons[i].pin);
+void detectButtonPress() {
+	/*printf("Task Name\tStatus\tPrio\tHWM\tTask#\tCore\n");
+	char buffer[512];
+	vTaskList(buffer);
+	printf("%s\n", buffer);*/
 
-			if (curr_bttn && !buttons[i].prev_state) { // On Button Press
-				ESP_LOGI("Button Detection", "%s button pressed",
-						 buttons[i].name);
-				if (buttons[i].notify) {
-					sendReport(buttons[i].button_flag);
-				} else {
-					// ESP_LOGI("Button Detection","")
-				}
-			}
-			if (!curr_bttn && buttons[i].prev_state) { // On Button Release
-				ESP_LOGI("Button Detection", "%s button released",
-						 buttons[i].name);
-				if (buttons[i].notify) {
-					sendReport(BUTTON_FLAG_RELEASE_ALL);
-				} else {
-					switch (buttons[i].button_flag) {
-					case BUTTON_FLAG_PAIR:
-						/*pairingMode = true;
-						ble_gap_unpair();
-						bleprph_advertise();*/
-						break;
-					}
-				}
-			}
+	for (int i = 0; i < sizeof(buttons) / sizeof(buttons[0]); i++) {
+		bool curr_bttn = gpio_get_level(buttons[i].pin);
 
-			buttons[i].prev_state = curr_bttn;
+		if (curr_bttn && !buttons[i].prev_state) { // On Button Press
+			ESP_LOGI("Button Detection", "%s button pressed", buttons[i].name);
+			if (buttons[i].notify) {
+				sendReport(buttons[i].button_flag);
+			} else {
+				// ESP_LOGI("Button Detection","")
+			}
 		}
-		vTaskDelay(100 / portTICK_PERIOD_MS);
+		if (!curr_bttn && buttons[i].prev_state) { // On Button Release
+			ESP_LOGI("Button Detection", "%s button released", buttons[i].name);
+			if (buttons[i].notify) {
+				sendReport(BUTTON_FLAG_RELEASE_ALL);
+			} else {
+				/*switch (buttons[i].button_flag) {
+				case BUTTON_FLAG_PAIR:
+					pairingMode = true;
+					ble_gap_unpair();
+					bleprph_advertise();
+					break;
+				}*/
+			}
+			last_bttn_press = esp_timer_get_time();
+		}
+
+		buttons[i].prev_state = curr_bttn;
+	}
+	vTaskDelay(10 / portTICK_PERIOD_MS);
+}
+
+void detectButtonPressTASK(void *parameters) {
+	while (true) {
+		detectButtonPress();
+	}
+}
+
+void sleep_task() {
+	while (true) {
+		if (esp_timer_get_time() - last_bttn_press >= activeTime_us) {
+			ESP_LOGI("SLEEP", "GOING TO SLEEP");
+			uart_wait_tx_idle_polling(CONFIG_ESP_CONSOLE_UART_NUM);
+			esp_light_sleep_start();
+			ESP_LOGI("SLEEP", "WAKING UP");
+			last_bttn_press = esp_timer_get_time();
+		}
+		vTaskDelay(10 / portTICK_PERIOD_MS);
 	}
 }
 
@@ -101,6 +135,17 @@ void buttonInit() {
 	gpio_config(
 		&button_io_config); // Configure all buttons as pulldown input pins
 
-	xTaskCreate(detectButtonPress, "Button Detection", 4096, NULL, 1,
+	for (int i = 0; i < sizeof(buttons) / sizeof(buttons[0]); i++) {
+		int rc = gpio_wakeup_enable(buttons[i].pin, GPIO_INTR_HIGH_LEVEL);
+		if (rc) {
+			ESP_LOGW("GPIO Enable", "Enable GPIO_%d wakeup failed",
+					 buttons[i].pin);
+		}
+	}
+
+	esp_sleep_enable_gpio_wakeup();
+
+	xTaskCreate(detectButtonPressTASK, "Button Detection", 4096, NULL, 1,
 				&bttn_detection_task_handle);
+	xTaskCreate(sleep_task, "Sleep Task", 4096, NULL, 1, &sleep_task_handle);
 }

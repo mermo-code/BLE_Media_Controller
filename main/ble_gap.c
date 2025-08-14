@@ -120,7 +120,7 @@ int sendReport(uint8_t BUTTON_FLAG) {
 	om = ble_hs_mbuf_from_flat(&hid_input_report, sizeof(hid_input_report));
 	rc = ble_gatts_notify_custom(conn_handle, HANDLE_HID_REPORT, om);
 
-	vTaskDelay(100 / portTICK_PERIOD_MS);
+	vTaskDelay(50 / portTICK_PERIOD_MS);
 	return 0;
 }
 
@@ -169,7 +169,7 @@ void bleprph_advertise(void) {
 		fields.adv_itvl_is_present = 1;
 		fields.adv_itvl = 40;
 
-		name = "Controller";
+		name = "MediaTap";
 		fields.name = (uint8_t *)name;
 		fields.name_len = strlen(name);
 		fields.name_is_complete = 1;
