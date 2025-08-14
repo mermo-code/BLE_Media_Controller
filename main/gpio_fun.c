@@ -69,12 +69,13 @@ void detectButtonPress(void *parameters) {
 				if (buttons[i].notify) {
 					sendReport(BUTTON_FLAG_RELEASE_ALL);
 				} else {
-					/*switch (buttons[i].button_flag) {
-						case BUTTON_FLAG_PAIR:
-						pairingMode = true;
-						bleprph_advertise();
+					switch (buttons[i].button_flag) {
+					case BUTTON_FLAG_PAIR:
+						/*pairingMode = true;
+						ble_gap_unpair();
+						bleprph_advertise();*/
 						break;
-					}*/
+					}
 				}
 			}
 

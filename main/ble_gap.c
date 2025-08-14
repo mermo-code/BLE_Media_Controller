@@ -37,7 +37,7 @@
 #include "ble_init.h"
 
 uint16_t conn_handle;
-ble_addr_t connected_peer_addr;
+uint16_t connected_peer_addr[6];
 bool HID_REPORT_NOTIFY_STATE;
 
 int bleprph_gap_event(struct ble_gap_event *event, void *arg);
@@ -124,7 +124,8 @@ int sendReport(uint8_t BUTTON_FLAG) {
 	return 0;
 }
 
-bool pairingMode = true; // Until I can work out how to correctly do pairing mode
+// bool pairingMode =	false; // Until I can work out how to correctly do
+// pairing mode
 
 /******************ADVERTISING********************/
 void bleprph_advertise(void) {
@@ -231,8 +232,10 @@ int bleprph_gap_event(struct ble_gap_event *event, void *arg) {
 			rc = ble_gap_conn_find(event->connect.conn_handle, &desc);
 			assert(rc == 0);
 			print_conn_desc(&desc);
-			connected_peer_addr = desc.peer_id_addr;
-			pairingMode = false;
+			/*for (int i = 0; i < 6; i++) {
+				connected_peer_addr[i] = desc.peer_id_addr.val[i];
+			}
+			pairingMode = false;*/
 		} else {
 			bleprph_advertise();
 		}
@@ -269,7 +272,7 @@ int bleprph_gap_event(struct ble_gap_event *event, void *arg) {
 	case BLE_GAP_EVENT_ADV_COMPLETE: // ADVERTISEMENT COMPLETE
 		ESP_LOGI(TAG, "Advertisement complete, Reason=%d",
 				 event->adv_complete.reason);
-		pairingMode = false;
+		// pairingMode = false;
 		return 0;
 	/********************************************************************/
 	case BLE_GAP_EVENT_ENC_CHANGE: // ENCRYPTION EVENT

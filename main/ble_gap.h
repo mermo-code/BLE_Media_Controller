@@ -15,7 +15,7 @@
 #include "nimble/ble.h"
 
 extern uint16_t conn_handle;
-extern ble_addr_t connected_peer_addr;
+extern uint16_t connected_peer_addr[];
 extern bool pairingMode;
 
 void releaseButtons();
