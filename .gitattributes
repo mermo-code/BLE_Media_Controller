@@ -1,0 +1,32 @@
+# Default to LF for all text files
+* text=auto eol=lf
+
+# C/C++ and headers
+*.c     text eol=lf
+*.cpp   text eol=lf
+*.h     text eol=lf
+*.hpp   text eol=lf
+
+# CMake
+CMakeLists.txt text eol=lf
+*.cmake text eol=lf
+
+# Config files
+*.txt text eol=lf
+*.md  text eol=lf
+*.csv text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Windows batch scripts should keep CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary files (no EOL conversion)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.exe binary
+*.bin binary
