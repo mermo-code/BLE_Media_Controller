@@ -24,7 +24,6 @@ const char *TAG = "BLE";
 esp_err_t ret;
 uint8_t own_addr_type;
 
-
 void ble_store_config_init(void);
 
 /********************BLE INITIATION*********************/
@@ -63,7 +62,7 @@ void startBLE() {
 	rc = gatt_svr_init();
 	assert(rc == 0);
 
-	rc = ble_svc_gap_device_name_set("Media Controller");
+	rc = ble_svc_gap_device_name_set("MediaTap");
 	assert(rc == 0);
 
 	ble_store_config_init();
@@ -88,7 +87,7 @@ int gatt_svr_init(void) {
 	ble_svc_gap_init();
 	ble_svc_gatt_init();
 	// ble_svc_dis_init();
-	
+
 	rc = ble_gatts_count_cfg(GATT_SVR_SVCS_DEF);
 	if (rc != 0) {
 		return rc;
@@ -127,8 +126,8 @@ void bleprph_on_sync(void) {
 	ESP_LOGI(TAG, "Determined address type = %s, Device address: %s",
 			 ble_addr_type_str(own_addr_type), addr_str(addr_val));
 
-	//struct ble_gap_conn_desc desc;
-	//if(ble_gap_conn_find(conn_handle, &desc))
+	// struct ble_gap_conn_desc desc;
+	// if(ble_gap_conn_find(conn_handle, &desc))
 	bleprph_advertise();
 }
 
