@@ -24,7 +24,7 @@ A custom Bluetooth Low Energy (BLE) media controller built for ESP32 devices usi
 ---
 
 ## Software
-
+This whole code is more about learning BLE than simplicity. Only libraries used were necessary NimBLE driver libraries.
 - **ESP-IDF** framework with **NimBLE** stack for BLE functionality.
 - Implements manual bonding and connection handling to a single device.
 - Verbose logs for all events.
